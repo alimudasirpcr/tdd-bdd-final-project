@@ -131,16 +131,17 @@ class Product(db.Model):
         """
         try:
             self.name = data["name"]
+            if not isinstance(self.name, str):  # Validate that name is a string
+                raise DataValidationError("Invalid type for string [name]: " + str(type(self.name)))
             self.description = data["description"]
             self.price = Decimal(data["price"])
             if isinstance(data["available"], bool):
                 self.available = data["available"]
             else:
                 raise DataValidationError(
-                    "Invalid type for boolean [available]: "
-                    + str(type(data["available"]))
+                    "Invalid type for boolean [available]: " + str(type(data["available"]))
                 )
-            self.category = getattr(Category, data["category"])  # create enum from string
+            self.category = getattr(Category, data["category"])  # Create enum from string
         except AttributeError as error:
             raise DataValidationError("Invalid attribute: " + error.args[0]) from error
         except KeyError as error:
@@ -218,7 +219,7 @@ class Product(db.Model):
         price_value = price
         if isinstance(price, str):
             price_value = Decimal(price.strip(' "'))
-        return cls.query.filter(cls.price == price_value)
+        return cls.query.filter(cls.price == price_value).all()
 
     @classmethod
     def find_by_availability(cls, available: bool = True) -> list:
@@ -247,3 +248,5 @@ class Product(db.Model):
         """
         logger.info("Processing category query for %s ...", category.name)
         return cls.query.filter(cls.category == category)
+
+    
