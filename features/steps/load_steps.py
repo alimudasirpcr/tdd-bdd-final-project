@@ -50,3 +50,17 @@ def step_impl(context):
         #
         # ADD YOUR CODE HERE TO CREATE PRODUCTS VIA THE REST API
         #
+
+
+    @given('the following products')
+    def step_impl(context):
+        """Load products into the database"""
+        for row in context.table:
+            product = Product(
+                name=row['name'],
+                description=row['description'],
+                price=row['price'],
+                available=row['available'].lower() == 'true',
+                category=getattr(Category, row['category'].upper())
+            )
+            product.create()
