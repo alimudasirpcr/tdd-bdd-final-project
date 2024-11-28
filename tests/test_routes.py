@@ -30,7 +30,7 @@ from decimal import Decimal
 from unittest import TestCase
 from service import app
 from service.common import status
-from service.models import db, init_db, Product
+from service.models import db, init_db, Product , DataValidationError
 from tests.factories import ProductFactory
 
 # Disable all but critical errors during normal test run
@@ -178,3 +178,145 @@ class TestProductRoutes(TestCase):
         data = response.get_json()
         # logging.debug("data = %s", data)
         return len(data)
+
+    def test_read_product_not_found(self):
+        """It should return 404 if the product is not found"""
+        response = self.client.get("/products/0")
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 0 was not found", response.get_json()["message"])
+
+
+    def test_create_product_missing_name(self):
+        """It should not Create a Product when the name is missing"""
+        product_data = {
+            "description": "A test product",
+            "price": "10.99",
+            "available": True,
+            "category": "FOOD"
+        }
+        response = self.client.post(
+            "/products", json=product_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid product: missing name", response.get_json()["message"])
+
+    
+    def test_update_product_not_found(self):
+        """It should return 404 when updating a non-existent product"""
+        product_data = {
+            "name": "Updated Product",
+            "description": "Updated description",
+            "price": "15.99",
+            "available": True,
+            "category": "FOOD"
+        }
+        response = self.client.put(
+            "/products/0", json=product_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 0 was not found", response.get_json()["message"])
+
+    def test_update_product_invalid_data(self):
+        """It should return 400 when deserialization fails"""
+        product = ProductFactory()
+        product.create()
+
+        invalid_data = {"name": 12345}  # Invalid name type
+        response = self.client.put(
+            f"/products/{product.id}", json=invalid_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid type for string [name]", response.get_json()["message"])
+
+    def test_delete_product_not_found(self):
+        """It should return 404 if the product to delete is not found"""
+        response = self.client.delete("/products/0")
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 0 was not found", response.get_json()["message"])
+
+    def test_list_products_empty(self):
+        """It should return an empty list when no products exist"""
+        response = self.client.get("/products")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), [])
+
+    def test_read_product_not_found(self):
+        """It should return 404 when the product is not found"""
+        response = self.client.get("/products/999")  # Non-existent product ID
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 999 was not found", response.get_json()["message"])
+
+    def test_update_product_invalid_data(self):
+        """It should return 400 when deserialization fails"""
+        product = ProductFactory()
+        product.create()
+        invalid_data = {"name": 12345}  # Invalid name type
+        response = self.client.put(
+            f"/products/{product.id}", json=invalid_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid type for string [name]", response.get_json()["message"])
+
+    def test_delete_product_not_found(self):
+        """It should return 404 when deleting a non-existent product"""
+        response = self.client.delete("/products/0")  # Non-existent product ID
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 0 was not found", response.get_json()["message"])
+
+    def test_read_product_not_found(self):
+        """It should return 404 when the product is not found"""
+        response = self.client.get("/products/0")  # Non-existent product ID
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 0 was not found", response.get_json()["message"])
+
+    def test_update_product_invalid_data(self):
+        """It should return 400 when deserialization fails"""
+        # Create a valid product
+        product = ProductFactory()
+        product.create()
+
+        # Attempt to update the product with invalid data
+        invalid_data = {"name": 12345}  # Invalid name type
+        response = self.client.put(
+            f"/products/{product.id}", json=invalid_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid type for string [name]", response.get_json()["message"])
+
+    def test_delete_product_not_found(self):
+        """It should return 404 when deleting a non-existent product"""
+        response = self.client.delete("/products/0")  # Non-existent product ID
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("Product with id 0 was not found", response.get_json()["message"])
+
+    def test_read_product_invalid_id(self):
+        """It should return 404 when the product ID is invalid"""
+        response = self.client.get("/products/invalid_id")  # Non-integer ID
+        self.assertEqual(response.status_code, 404)
+
+    def test_update_product_no_data(self):
+        """It should return 400 when no data is provided"""
+        product = ProductFactory()
+        product.create()
+
+        response = self.client.put(
+            f"/products/{product.id}", json={}, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Invalid product: missing name", response.get_json()["message"])
+
+    def test_delete_product_invalid_id(self):
+        """It should return 404 when the product ID is invalid"""
+        response = self.client.delete("/products/invalid_id")  # Non-integer ID
+        self.assertEqual(response.status_code, 404)
+
+    def test_update_product_partial_data(self):
+        """It should update a product with partial data"""
+        product = ProductFactory()
+        product.create()
+
+        partial_data = {"name": "Partially Updated Name"}  # Only updating the name
+        response = self.client.put(
+            f"/products/{product.id}", json=partial_data, content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 400)  # Deserialization requires all fields

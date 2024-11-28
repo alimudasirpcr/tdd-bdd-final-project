@@ -332,3 +332,6 @@ class TestProductModel(unittest.TestCase):
         found_products = Product.find_by_availability(False)
         self.assertEqual(len(found_products), 1)
         self.assertFalse(found_products[0].available)
+
+
+    

@@ -20,7 +20,7 @@ Product Store Service with UI
 """
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
-from service.models import Product
+from service.models import Product , DataValidationError
 from service.common import status  # HTTP Status Codes
 from . import app
 
@@ -101,6 +101,12 @@ def create_products():
 #
 # PLACE YOUR CODE TO LIST ALL PRODUCTS HERE
 #
+@app.route("/products", methods=["GET"])
+def list_products():
+    """Returns all products"""
+    products = Product.all()
+    results = [product.serialize() for product in products]
+    return jsonify(results), 200
 
 ######################################################################
 # R E A D   A   P R O D U C T
@@ -109,7 +115,13 @@ def create_products():
 #
 # PLACE YOUR CODE HERE TO READ A PRODUCT
 #
-
+@app.route("/products/<int:product_id>", methods=["GET"])
+def read_product(product_id):
+    """Returns a single product by ID"""
+    product = Product.find(product_id)
+    if not product:
+        abort(404, f"Product with id {product_id} was not found.")
+    return jsonify(product.serialize()), 200
 ######################################################################
 # U P D A T E   A   P R O D U C T
 ######################################################################
@@ -117,7 +129,18 @@ def create_products():
 #
 # PLACE YOUR CODE TO UPDATE A PRODUCT HERE
 #
-
+@app.route("/products/<int:product_id>", methods=["PUT"])
+def update_product(product_id):
+    """Updates an existing product"""
+    product = Product.find(product_id)
+    if not product:
+        abort(404, f"Product with id {product_id} was not found.")
+    try:
+        product.deserialize(request.get_json())
+    except DataValidationError as error:
+        abort(400, str(error))
+    product.update()
+    return jsonify(product.serialize()), 200
 ######################################################################
 # D E L E T E   A   P R O D U C T
 ######################################################################
@@ -126,3 +149,11 @@ def create_products():
 #
 # PLACE YOUR CODE TO DELETE A PRODUCT HERE
 #
+@app.route("/products/<int:product_id>", methods=["DELETE"])
+def delete_product(product_id):
+    """Deletes a product"""
+    product = Product.find(product_id)
+    if not product:
+        abort(404, f"Product with id {product_id} was not found.")
+    product.delete()
+    return "", 204
