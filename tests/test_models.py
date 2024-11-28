@@ -313,3 +313,22 @@ class TestProductModel(unittest.TestCase):
         # Use a price that doesn't match any product
         found_products = Product.find_by_price("99.99")
         self.assertEqual(len(found_products), 0)
+
+
+    def test_find_by_availability(self):
+        """It should Find Products by Availability"""
+        # Create products with different availability statuses
+        available_product = ProductFactory(available=True)
+        unavailable_product = ProductFactory(available=False)
+        available_product.create()
+        unavailable_product.create()
+
+        # Find available products
+        found_products = Product.find_by_availability(True)
+        self.assertEqual(len(found_products), 1)
+        self.assertTrue(found_products[0].available)
+
+        # Find unavailable products
+        found_products = Product.find_by_availability(False)
+        self.assertEqual(len(found_products), 1)
+        self.assertFalse(found_products[0].available)

@@ -249,4 +249,10 @@ class Product(db.Model):
         logger.info("Processing category query for %s ...", category.name)
         return cls.query.filter(cls.category == category)
 
+    @classmethod
+    def find_by_availability(cls, available: bool = True) -> list:
+        """Returns all Products by their availability"""
+        logger.info("Processing available query for %s ...", available)
+        return cls.query.filter(cls.available == available).all()
+
     
