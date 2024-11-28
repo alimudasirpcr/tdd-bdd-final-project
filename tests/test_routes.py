@@ -347,3 +347,85 @@ class TestProductRoutes(TestCase):
         self.assertEqual(data["price"], "19.99")
         self.assertTrue(data["available"])
         self.assertEqual(data["category"], "FOOD")
+
+    def test_delete_product(self):
+        """It should Delete a Product"""
+        # Create a product to delete
+        product = ProductFactory()
+        product.create()
+
+        # Delete the product
+        response = self.client.delete(f"/products/{product.id}")
+        self.assertEqual(response.status_code, 204)
+
+        # Ensure the product is no longer in the database
+        response = self.client.get(f"/products/{product.id}")
+        self.assertEqual(response.status_code, 404)
+
+    def test_list_products(self):
+        """It should return a list of all products"""
+        # Create multiple products
+        product1 = ProductFactory()
+        product2 = ProductFactory()
+        product1.create()
+        product2.create()
+
+        response = self.client.get("/products")
+        self.assertEqual(response.status_code, 200)
+
+        data = response.get_json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["id"], product1.id)
+        self.assertEqual(data[1]["id"], product2.id)
+
+    def test_list_products_by_name(self):
+        """It should return products filtered by name"""
+        # Create products
+        product1 = ProductFactory(name="Hat")
+        product2 = ProductFactory(name="Shirt")
+        product1.create()
+        product2.create()
+
+        # Search for products by name
+        response = self.client.get("/products?name=Hat")
+        self.assertEqual(response.status_code, 200)
+
+        # Verify only the matching product is returned
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["name"], "Hat")
+
+    def test_list_products_by_category(self):
+        """It should return products filtered by category"""
+        # Create products with distinct categories
+        product1 = ProductFactory(category="FOOD")
+        product2 = ProductFactory(category="TOOLS")
+        product1.create()
+        product2.create()
+
+        # Search for products by category
+        response = self.client.get("/products?category=FOOD")
+        self.assertEqual(response.status_code, 200)
+
+        # Verify only the matching product is returned
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["category"], "FOOD")
+
+    def test_list_products_by_availability(self):
+        """It should return products filtered by availability"""
+        # Create products with different availability statuses
+        product1 = ProductFactory(available=True)
+        product2 = ProductFactory(available=False)
+        product1.create()
+        product2.create()
+
+        # Search for available products
+        response = self.client.get("/products?available=true")
+        self.assertEqual(response.status_code, 200)
+
+        # Verify only available products are returned
+        data = response.get_json()
+        self.assertEqual(len(data), 1)
+        self.assertTrue(data[0]["available"])
+

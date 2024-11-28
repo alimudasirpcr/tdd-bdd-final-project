@@ -20,7 +20,7 @@ Product Store Service with UI
 """
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
-from service.models import Product , DataValidationError
+from service.models import Product , DataValidationError , Category
 from service.common import status  # HTTP Status Codes
 from . import app
 
@@ -103,8 +103,25 @@ def create_products():
 #
 @app.route("/products", methods=["GET"])
 def list_products():
-    """Returns all products"""
-    products = Product.all()
+    """Returns a list of all products or filters by availability"""
+    name = request.args.get("name")
+    category = request.args.get("category")
+    available = request.args.get("available")
+    
+    if name:
+        products = Product.find_by_name(name)
+    elif category:
+        try:
+            category_enum = getattr(Category, category.upper())  # Convert to Enum
+            products = Product.find_by_category(category_enum)
+        except AttributeError:
+            abort(400, f"Invalid category: {category}")
+    elif available is not None:
+        available_bool = available.lower() == "true"  # Convert to Boolean
+        products = Product.find_by_availability(available_bool)
+    else:
+        products = Product.all()
+    
     results = [product.serialize() for product in products]
     return jsonify(results), 200
 
@@ -135,10 +152,12 @@ def update_product(product_id):
     product = Product.find(product_id)
     if not product:
         abort(404, f"Product with id {product_id} was not found.")
+    
     try:
         product.deserialize(request.get_json())
     except DataValidationError as error:
         abort(400, str(error))
+    
     product.update()
     return jsonify(product.serialize()), 200
 ######################################################################
