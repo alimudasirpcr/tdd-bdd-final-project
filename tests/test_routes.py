@@ -320,3 +320,30 @@ class TestProductRoutes(TestCase):
             f"/products/{product.id}", json=partial_data, content_type="application/json"
         )
         self.assertEqual(response.status_code, 400)  # Deserialization requires all fields
+
+    def test_update_product(self):
+        """It should Update a Product"""
+        # Create a product
+        product = ProductFactory()
+        product.create()
+
+        # Update the product
+        updated_data = {
+            "name": "Updated Product Name",
+            "description": "Updated description",
+            "price": "19.99",
+            "available": True,
+            "category": "FOOD"
+        }
+        response = self.client.put(
+            f"/products/{product.id}",
+            json=updated_data,
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data["name"], "Updated Product Name")
+        self.assertEqual(data["description"], "Updated description")
+        self.assertEqual(data["price"], "19.99")
+        self.assertTrue(data["available"])
+        self.assertEqual(data["category"], "FOOD")
